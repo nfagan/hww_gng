@@ -5,17 +5,18 @@ STATES.sequence = { 'new_trial', 'fixation', 'display_go_nogo_cue' ...
   , 'delay_post_cue_display', 'go_nogo', 'error_go_nogo', 'reward', 'iti' };
 
 % - SCREEN + WINDOW - %
-SCREEN.index = 0;
-SCREEN.background_color = [ 0 0 0 ];
-[windex, wrect] = Screen( 'OpenWindow', SCREEN.index, SCREEN.background_color, [], 32 );
-
-WINDOW.center = round( [mean(wrect([1 3])), mean(wrect([2 4]))] );
-WINDOW.index = windex;
-WINDOW.rect = wrect;
+SCREEN = ScreenManager();
+WINDOW = SCREEN.open_window( 0, [0 0 0] );
 
 % - IO - %
 IO.edf_file = 'txst.edf';
 IO.edf_folder = '~/Desktop';
+IO.data_file = 'txst.mat';
+IO.data_folder = '~/Desktop';
+IO.stim_path = fullfile( pathfor('hww_gng'), 'stimuli' );
+
+assert__file_does_not_exist( fullfile(IO.data_folder, IO.data_file) );
+assert__file_does_not_exist( fullfile(IO.edf_folder, IO.edf_file) );
 
 % - EYE TRACKER - %
 TRACKER = EyeTracker( IO.edf_file, IO.edf_folder, WINDOW.index );
@@ -24,19 +25,20 @@ TRACKER.bypass = true;
 % - STRUCTURE - %
 STRUCTURE.p_go = .7;
 STRUCTURE.p_social = .5;
+STRUCTURE.p_target_left = .5;
 
 % - TIMINGS - %
 time_in.task = Inf;
 time_in.new_trial = 0;
-time_in.fixation = Inf;
-time_in.display_go_nogo_cue = .5;
+time_in.fixation = 2;
+time_in.display_go_nogo_cue = 0;
 time_in.delay_post_cue_display = 0;
 time_in.go_nogo = 2;
 time_in.error_go_nogo = 1;
 time_in.reward = 1;
 time_in.iti = 1;
 
-fixations.fix_square = 2;
+fixations.fix_square = .3;
 fixations.go_target = 1;
 fixations.go_cue = 1;
 fixations.nogo_cue = 1;
@@ -55,38 +57,38 @@ for i = 1:numel(fs)
 end
 
 % - STIMULI - %
-images.go.social =        get_images( 'go', 'social', '.png' );
-images.go.nonsocial =     get_images( 'go', 'nonsocial', '.png' );
-images.nogo.social =      get_images( 'nogo', 'social', '.png' );
-images.nogo.nonsocial =   get_images( 'nogo', 'nonsocial', '.png' );
+images.go.social =        get_images( IO.stim_path, 'go', 'social', '.png' );
+images.go.nonsocial =     get_images( IO.stim_path, 'go', 'nonsocial', '.png' );
+images.nogo.social =      get_images( IO.stim_path, 'nogo', 'social', '.png' );
+images.nogo.nonsocial =   get_images( IO.stim_path, 'nogo', 'nonsocial', '.png' );
 
-fix_square = Rectangle( WINDOW.index, WINDOW.rect, [200, 200] );
+fix_square = WINDOW.Rectangle( [200, 200] );
 fix_square.color = [ 200, 200, 40 ];
 fix_square.put( 'center' );
 fix_square.make_target( TRACKER, fixations.fix_square );
 
-go_target = Rectangle( WINDOW.index, WINDOW.rect, [150, 150] );
+go_target = WINDOW.Rectangle( [150, 150] );
 go_target.color = [ 50, 200, 40 ];
 go_target.put( 'center-right' );
 go_target.make_target( TRACKER, fixations.go_target );
 
-go_cue = Image( WINDOW.index, WINDOW.rect, [200, 200], images.go.social{1} );
+go_cue = WINDOW.Image( [200, 200], images.go.social.matrices{1} );
 go_cue.color = [ 255 255 255 ];
 go_cue.put( 'center' );
 go_cue.make_target( TRACKER, fixations.go_cue );
 
-nogo_cue = Image( WINDOW.index, WINDOW.rect, [200, 200], images.nogo.social{1} );
+nogo_cue = WINDOW.Image( [200, 200], images.nogo.social.matrices{1} );
 nogo_cue.color = [ 255 255 255 ];
 nogo_cue.pen_width = 4;
 nogo_cue.put( 'center' );
 nogo_cue.make_target( TRACKER, fixations.nogo_cue );
 
 err_img = imread( fullfile(pathfor('hww_gng'), 'stimuli', 'err', 'err.png') );
-error_cue = Image( WINDOW.index, WINDOW.rect, [200, 200], err_img );
+error_cue = WINDOW.Image( [200, 200], err_img );
 error_cue.put( 'center' );
 
 drop_img = imread( fullfile(pathfor('hww_gng'), 'stimuli', 'reward', 'droplet.png') );
-rwd_drop = Image( WINDOW.index, WINDOW.rect, [200, 200], drop_img );
+rwd_drop = WINDOW.Image( [200, 200], drop_img );
 rwd_drop.put( 'center' );
 
 STIMULI.fix_square = fix_square;
@@ -114,11 +116,19 @@ opts.REWARDS =    REWARDS;
 
 end
 
-function images = get_images( go_nogo, soc_nonsoc, extension )
+function images = get_images( stim_path, go_nogo, soc_nonsoc, extension )
 
-stim_path =     fullfile( pathfor('hww_gng'), 'stimuli', go_nogo, soc_nonsoc );
-image_names =   hww_gng.util.dirstruct( stim_path, extension );
-image_names =   { image_names(:).name };
-images =        cellfun( @(x) imread(fullfile(stim_path, x)), image_names, 'un', false );
+stim_path =         fullfile( stim_path, go_nogo, soc_nonsoc );
+image_names =       hww_gng.util.dirstruct( stim_path, extension );
+image_names =       { image_names(:).name };
+images.matrices =   cellfun( @(x) imread(fullfile(stim_path, x)) ...
+                      , image_names, 'un', false );
+images.filenames =  image_names;
+
+end
+
+function assert__file_does_not_exist( file )
+
+assert( exist(file, 'file') ~= 2, 'The file ''%s'' already exists.', file );
 
 end
