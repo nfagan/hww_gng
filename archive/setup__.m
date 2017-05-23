@@ -9,18 +9,29 @@ SCREEN = ScreenManager();
 WINDOW = SCREEN.open_window( 0, [0 0 0] );
 
 % - IO - %
+IO.repo_dir = hww_gng.util.get_repo_dir();
 IO.edf_file = 'txst.edf';
-IO.edf_folder = '~/Desktop';
 IO.data_file = 'txst.mat';
-IO.data_folder = '~/Desktop';
-IO.stim_path = fullfile( pathfor('hww_gng'), 'stimuli' );
+IO.edf_folder = fullfile( IO.repo_dir, 'hww_gng', 'data' );
+IO.data_folder = fullfile( IO.repo_dir, 'hww_gng', 'data' );
+IO.stim_path = fullfile( IO.repo_dir, 'hww_gng', 'stimuli' );
+
+% - META - %
+META.session = '';
+META.data = '';
+META.monkey = '';
+META.etc = '';
+
+% - INTERFACE - %
+INTERFACE.use_eyelink = false;
+INTERFACE.use_arduino = false;
 
 assert__file_does_not_exist( fullfile(IO.data_folder, IO.data_file) );
 assert__file_does_not_exist( fullfile(IO.edf_folder, IO.edf_file) );
 
 % - EYE TRACKER - %
 TRACKER = EyeTracker( IO.edf_file, IO.edf_folder, WINDOW.index );
-TRACKER.bypass = true;
+TRACKER.bypass = ~INTERFACE.use_eyelink;
 
 % - STRUCTURE - %
 STRUCTURE.p_go = .7;
@@ -99,6 +110,21 @@ STIMULI.images = images;
 STIMULI.error_cue = error_cue;
 STIMULI.rwd_drop = rwd_drop;
 
+% - SERIAL - %
+
+port = 'COM3';
+messages = struct();
+channels = { 'A' };
+
+if ( INTERFACE.use_arduino )
+  SERIAL.comm = serial_comm.SerialManager( port, messages, channels );
+else
+  SERIAL.comm = [];
+end
+SERIAL.port = port;
+SERIAL.messages = messages;
+SERIAL.channels = channels;
+
 % - REWARDS - %
 REWARDS.main = 100;
 
@@ -107,6 +133,7 @@ opts.STATES =     STATES;
 opts.SCREEN =     SCREEN;
 opts.WINDOW =     WINDOW;
 opts.IO =         IO;
+opts.META =       META;
 opts.TRACKER =    TRACKER;
 opts.STRUCTURE =  STRUCTURE;
 opts.TIMINGS =    TIMINGS;

@@ -1,6 +1,12 @@
-function task(opts)
+function run(opts)
+
+%   RUN -- Run the task based on the saved config file options.
+%
+%     IN:
+%       - `opts` (struct)
 
 IO =        opts.IO;
+INTERFACE = opts.INTERFACE;
 TIMINGS =   opts.TIMINGS;
 TIMER =     opts.TIMER;
 TRACKER =   opts.TRACKER;
@@ -8,6 +14,7 @@ STRUCTURE = opts.STRUCTURE;
 STIMULI =   opts.STIMULI;
 REWARDS =   opts.REWARDS;
 WINDOW =    opts.WINDOW;
+comm =      opts.SERIAL.comm;
 
 cstate = 'new_trial';
 
@@ -207,6 +214,9 @@ while ( true )
   if ( isequal(cstate, 'reward') )
     if ( do_once )
       TIMER.reset_timers( cstate );
+      if ( INTERFACE.use_arduino )
+        comm.reward( 'A', REWARDS.main );
+      end
       rwd_drop = STIMULI.rwd_drop;
       do_once = false;
     end
@@ -244,6 +254,10 @@ while ( true )
   if ( TIMER.duration_met('task') ), break; end;  
 end
 
-save( fullfile(IO.data_folder, IO.data_file), 'DATA' );
+data = struct();
+data.DATA = DATA;
+data.opts = opts;
+
+save( fullfile(IO.data_folder, IO.data_file), 'data' );
 
 end
