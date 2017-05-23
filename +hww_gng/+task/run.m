@@ -246,9 +246,16 @@ while ( true )
   err = TRACKER.check_recording();
   if ( err ~= 0 ), break; end;
   
-  %   Quit if key is pressed
-  [key_pressed, ~, ~] = KbCheck();
-  if ( key_pressed ), break; end
+  % - Check if key is pressed
+  [key_pressed, ~, key_code] = KbCheck();
+  if ( key_pressed )
+    % - Quit if stop_key is pressed
+    if ( key_code(INTERFACE.stop_key) ), break; end;
+    %   Deliver reward if reward key is pressed
+    if ( key_code(INTERFACE.rwd_key) && INTERFACE.use_arduino )
+      comm.reward( 'A', REWARDS.main );
+    end
+  end
   
   %   Quit if time exceeds total time
   if ( TIMER.duration_met('task') ), break; end;  

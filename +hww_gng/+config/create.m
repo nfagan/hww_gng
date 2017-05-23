@@ -1,5 +1,11 @@
 function create()
 
+%   CREATE -- Create the config file.
+%
+%     Set default values in this file; to edit them, load the config file
+%     via opts = hww_gng.config.load(). Edit the loaded config file, then
+%     save it with hww_gng.config.save( opts ).
+
 % - STATES - %
 STATES.sequence = { 'new_trial', 'fixation', 'display_go_nogo_cue' ...
   , 'delay_post_cue_display', 'go_nogo', 'error_go_nogo', 'reward', 'iti' };
@@ -15,6 +21,7 @@ IO.data_file = 'txst.mat';
 IO.edf_folder = fullfile( IO.repo_dir, 'hww_gng', 'data' );
 IO.data_folder = fullfile( IO.repo_dir, 'hww_gng', 'data' );
 IO.stim_path = fullfile( IO.repo_dir, 'hww_gng', 'stimuli' );
+IO.gui_fields.include = { 'data_file', 'edf_file' };
 
 % - META - %
 META.session = '';
@@ -27,6 +34,9 @@ INTERFACE.use_eyelink = true;
 INTERFACE.use_arduino = true;
 INTERFACE.save_data = true;
 INTERFACE.allow_overwrite = false;
+INTERFACE.stop_key = KbName( 'escape' );
+INTERFACE.rwd_key = KbName( 'r' );
+INTERFACE.gui_fields.exclude = { 'stop_key', 'rwd_key' };
 
 % - STRUCTURE - %
 STRUCTURE.p_go = .7;
@@ -64,8 +74,9 @@ images.error =            get_images( IO.stim_path, {'err'}, '.png' );
 images.reward =           get_images( IO.stim_path, {'reward'}, '.png' );
 
 STIMULI.images = images;
+STIMULI.gui_fields.exclude = { 'images' };
 
-non_editable_properties = {{ 'placement', 'has_target' }};
+non_editable_properties = {{ 'placement', 'has_target', 'image_matrix' }};
 STIMULI.fix_square = struct( ...
     'class',            'Rectangle' ...
   , 'size',             [ 200, 200 ] ...
@@ -136,6 +147,7 @@ STIMULI.rwd_drop = struct( ...
 SERIAL.port = 'COM3';
 SERIAL.messages = struct();
 SERIAL.channels = { 'A' };
+SERIAL.gui_fields.include = { 'port' };
 
 % - REWARDS - %
 REWARDS.main = 100;

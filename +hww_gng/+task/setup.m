@@ -16,6 +16,7 @@ TIMINGS =   opts.TIMINGS;
 STIMULI =   opts.STIMULI;
 SERIAL =    opts.SERIAL;
 
+KbName( 'UnifyKeyNames' );
 addpath( genpath(fullfile(IO.repo_dir, 'ptb_helpers')) );
 addpath( genpath(fullfile(IO.repo_dir, 'serial_comm')) );
 
