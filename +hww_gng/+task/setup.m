@@ -17,17 +17,23 @@ STIMULI =   opts.STIMULI;
 SERIAL =    opts.SERIAL;
 
 KbName( 'UnifyKeyNames' );
+
 addpath( genpath(fullfile(IO.repo_dir, 'ptb_helpers')) );
 addpath( genpath(fullfile(IO.repo_dir, 'serial_comm')) );
-
-% - SCREEN + WINDOW - %
-SCREEN = ScreenManager();
-WINDOW = SCREEN.open_window( opts.SCREEN.index, opts.SCREEN.bg_color );
 
 if ( INTERFACE.save_data && ~INTERFACE.allow_overwrite )
   hww_gng.util.assert__file_does_not_exist( fullfile(IO.data_folder, IO.data_file) );
   hww_gng.util.assert__file_does_not_exist( fullfile(IO.edf_folder, IO.edf_file) );
 end
+
+% - SCREEN + WINDOW - %
+SCREEN = ScreenManager();
+
+index = opts.SCREEN.index;
+bg_color = opts.SCREEN.bg_color;
+rect = opts.SCREEN.rect;
+
+WINDOW = SCREEN.open_window( index, bg_color, rect );
 
 % - TRACKER - %
 TRACKER = EyeTracker( IO.edf_file, IO.edf_folder, WINDOW.index );

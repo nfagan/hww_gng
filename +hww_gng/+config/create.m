@@ -13,6 +13,7 @@ STATES.sequence = { 'new_trial', 'fixation', 'display_go_nogo_cue' ...
 % - SCREEN + WINDOW - %
 SCREEN.index = 0;
 SCREEN.bg_color = [ 0 0 0 ];
+SCREEN.rect = [ 0 0 800 600 ];
 
 % - IO - %
 IO.repo_dir = hww_gng.util.get_repo_dir();
