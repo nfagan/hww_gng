@@ -2,5 +2,6 @@
 *.asv
 .DS_Store
 notes/
+data/
 +hww_gng/+config/default.mat
 +hww_gng/+config/config.mat
