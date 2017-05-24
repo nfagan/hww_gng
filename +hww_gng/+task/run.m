@@ -18,34 +18,62 @@ comm =      opts.SERIAL.comm;
 
 cstate = 'new_trial';
 
-do_once = true;
+first_entry = true;
 
 DATA = struct();
+PROGRESS = struct();
 TRIAL_NUMBER = 0;
+
+go_fs = { 'go', 'nogo' };
+soc_fs = { 'social', 'nonsocial' };
+n_correct = hww_gng.util.layeredstruct( {go_fs, soc_fs}, 0 );
+n_incorrect = n_correct;
 
 while ( true )
   
   if ( isequal(cstate, 'new_trial') )
-    if ( do_once )
+    if ( first_entry )
       %   RECORD DATA
       if ( TRIAL_NUMBER > 0 )
         tn = TRIAL_NUMBER;
+        DATA(tn).trial_number =           tn;
         DATA(tn).trial_type =             trial_type;
         DATA(tn).cue_type =               cue_type;
         DATA(tn).image_file =             current_image_file;
         DATA(tn).target_placement =       target_placement;
+        DATA(tn).target_displacement =    target_displacement;
         DATA(tn).cue_delay =              cue_delay;
         DATA(tn).reaction_time =          reaction_time;
         DATA(tn).error__no_fixation =     error__no_fixation;
         DATA(tn).error__wrong_go_nogo =   error__wrong_go_nogo;
+        DATA(tn).events =                 PROGRESS;
+        %   display progress
+        for i = 1:numel(go_fs)
+          for j = 1:numel(soc_fs)
+            gof = go_fs{i};
+            socf = soc_fs{j};
+            corrv = n_correct.(gof).(socf);
+            incorrv = n_incorrect.(gof).(socf);
+            fprintf( '\n Correct   %s %s: %d', gof, socf, corrv );
+            fprintf( '\n Incorrect %s %s: %d', gof, socf, incorrv );
+            fprintf( '\n' );
+          end
+        end
+        fprintf( '\n\n' );
+        disp( DATA(tn) );
       end
       TRIAL_NUMBER = TRIAL_NUMBER + 1;
       TIMER.reset_timers( cstate );
+      %   reset progress time
+      PROGRESS = structfun( @(x) NaN, PROGRESS, 'un', false );
+      PROGRESS.new_trial = TIMER.get_time( 'task' );
+      %   send eyelink new trial message
+      TRACKER.send( sprintf('TRIAL__%d', TRIAL_NUMBER) );
       %   establish go v no go, social v. nonsocial
       is_go = rand() < STRUCTURE.p_go;
       is_social = rand() < STRUCTURE.p_social;
       is_target_left = rand() < STRUCTURE.p_target_left;
-      images = STIMULI.images;
+      images = STIMULI.setup.images;
       go_cue = STIMULI.go_cue;
       nogo_cue = STIMULI.nogo_cue;
       %   establish variable cue display time
@@ -56,7 +84,10 @@ while ( true )
       %   establish cue placement
       if ( is_target_left )
         target_placement = 'center-left';
-      else target_placement = 'center-right';
+        target_displacement = -STIMULI.setup.go_target.displacement;
+      else
+        target_placement = 'center-right';
+        target_displacement = STIMULI.setup.go_target.displacement;
       end
       %   reset reaction time
       reaction_time = 0;
@@ -84,87 +115,103 @@ while ( true )
       select_files = select_files( perm_index );
       cue.image = select_images{1};
       current_image_file = select_files{1};
-      do_once = false;
+      first_entry = false;
     end
     if ( TIMER.duration_met('new_trial') )
       %   MARK: goto: new_trial
       cstate = 'fixation';
-      do_once = true;
+      first_entry = true;
     end
   end
   
   if ( isequal(cstate, 'fixation') )
-    if ( do_once )
+    if ( first_entry )
       TIMER.reset_timers( cstate );
       fix_square = STIMULI.fix_square;
       fix_square.reset_targets();
-      do_once = false;
+      log_progress = true;
+      first_entry = false;
     end
     TRACKER.update_coordinates();
     fix_square.update_targets();
     fix_square.draw();
     Screen( 'Flip', WINDOW.index );
+    if ( log_progress )
+      PROGRESS.fixation_on = TIMER.get_time( 'task' );
+      log_progress = false;
+    end
     if ( fix_square.duration_met() )
       %   MARK: goto: display_go_nogo_cue
       cstate = 'display_go_nogo_cue';
-      do_once = true;
+      first_entry = true;
     end
     if ( TIMER.duration_met('fixation') )
       %   MARK: goto: fixation
       error__no_fixation = true;
       cstate = 'new_trial';
-      do_once = true;
+      first_entry = true;
     end
   end
   
   if ( isequal(cstate, 'display_go_nogo_cue') )
-    if ( do_once )
+    if ( first_entry )
       TIMER.reset_timers( cstate );
       cue.put( 'center' );
-      do_once = false;
+      log_progress = true;
+      first_entry = false;
     end
     TRACKER.update_coordinates();
     cue.draw();
     Screen( 'Flip', WINDOW.index );
+    if ( log_progress )
+      PROGRESS.go_nogo_cue_onset = TIMER.get_time( 'task' );
+      log_progress = false;
+    end
     if ( TIMER.duration_met('display_go_nogo_cue') )
       %   MARK: goto: delay_post_cue_display
       cstate = 'delay_post_cue_display';
-      do_once = true;
+      first_entry = true;
     end
   end
   
   if ( isequal(cstate, 'delay_post_cue_display') )
-    if ( do_once )
+    if ( first_entry )
       TIMER.set_durations( cstate, cue_delay );
       TIMER.reset_timers( cstate );
-      do_once = false;
+      first_entry = false;
     end
     cue.draw();
     Screen( 'Flip', WINDOW.index );
     if ( TIMER.duration_met('delay_post_cue_display') )
       %   MARK: goto: go_nogo
       cstate = 'go_nogo';
-      do_once = true;
+      first_entry = true;
     end
   end
   
   if ( isequal(cstate, 'go_nogo') )
-    if ( do_once )
+    if ( first_entry )
       TIMER.reset_timers( cstate );
       go_target = STIMULI.go_target;
       go_target.put( target_placement );
+      go_target.shift( target_displacement(1), target_displacement(2) );
       cue.put( 'center' );
       targ_duration = go_target.targets{1}.duration;
       awaiting_next_state = true;
       next_state = [];
       state_entry_time = TIMER.get_time( cstate );
-      do_once = false;
+      log_progress = true;
+      first_entry = false;
     end
     TRACKER.update_coordinates();
     go_target.update_targets();
     go_target.draw();
     cue.draw();
     Screen( 'Flip', WINDOW.index );
+    if ( log_progress )
+      PROGRESS.go_target_onset = TIMER.get_time( 'task' );
+      log_progress = false;
+    end
     if ( ~is_go )
       %   if they look at the go target ...
       if ( awaiting_next_state )
@@ -191,54 +238,68 @@ while ( true )
         next_state = 'error_go_nogo'; 
       end
       cstate = next_state;
-      do_once = true;
+      first_entry = true;
     end
   end
   
   if ( isequal(cstate, 'error_go_nogo') )
-    if ( do_once )
+    if ( first_entry )
       TIMER.reset_timers( cstate );
       error_cue = STIMULI.error_cue;
       error__wrong_go_nogo = true;
-      do_once = false;
+      current_incorrect = n_incorrect.(trial_type).(cue_type);
+      n_incorrect.(trial_type).(cue_type) = current_incorrect + 1;
+      log_progress = true;
+      first_entry = false;
     end
     error_cue.draw();
     Screen( 'Flip', WINDOW.index );
+    if ( log_progress )
+      PROGRESS.go_target_offset = TIMER.get_time( 'task' );
+      log_progress = false;
+    end
     if ( TIMER.duration_met('error_go_nogo') )
       %   MARK: goto: iti
       cstate = 'iti';
-      do_once = true;
+      first_entry = true;
     end
   end
   
   if ( isequal(cstate, 'reward') )
-    if ( do_once )
+    if ( first_entry )
       TIMER.reset_timers( cstate );
       if ( INTERFACE.use_arduino )
         comm.reward( 'A', REWARDS.main );
       end
       rwd_drop = STIMULI.rwd_drop;
-      do_once = false;
+      current_correct = n_correct.(trial_type).(cue_type);
+      n_correct.(trial_type).(cue_type) = current_correct + 1;
+      log_progress = true;
+      first_entry = false;
     end
     rwd_drop.draw();
     Screen( 'Flip', WINDOW.index );
+    if ( log_progress )
+      PROGRESS.go_target_offset = TIMER.get_time( 'task' );
+      log_progress = false;
+    end
     if ( TIMER.duration_met('reward') )
       %   MARK: goto: iti
       cstate = 'iti';
-      do_once = true;
+      first_entry = true;
     end
   end
   
   if ( isequal(cstate, 'iti') )
-    if ( do_once )
+    if ( first_entry )
       TIMER.reset_timers( cstate );
       Screen( 'Flip', WINDOW.index );
-      do_once = false;
+      first_entry = false;
     end
     if ( TIMER.duration_met('iti') )
       %   MARK: goto: new_trial
       cstate = 'new_trial';
-      do_once = true;
+      first_entry = true;
     end
   end
   
@@ -261,10 +322,11 @@ while ( true )
   if ( TIMER.duration_met('task') ), break; end;  
 end
 
-data = struct();
-data.DATA = DATA;
-data.opts = opts;
-
-save( fullfile(IO.data_folder, IO.data_file), 'data' );
+if ( INTERFACE.save_data )
+  data = struct();
+  data.DATA = DATA;
+  data.opts = opts;
+  save( fullfile(IO.data_folder, IO.data_file), 'data' );
+end
 
 end

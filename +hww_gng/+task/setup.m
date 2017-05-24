@@ -45,9 +45,9 @@ TIMER = Timer();
 TIMER.register( TIMINGS.time_in );
 
 % - STIMULI - %
-stim_fs = fieldnames( STIMULI );
+stim_fs = fieldnames( STIMULI.setup );
 for i = 1:numel(stim_fs)
-  stim = STIMULI.(stim_fs{i});
+  stim = STIMULI.setup.(stim_fs{i});
   if ( ~isstruct(stim) ), continue; end;
   if ( ~isfield(stim, 'class') ), continue; end
   switch ( stim.class )

@@ -120,7 +120,7 @@ panels.stimuli = uipanel( F ...
   , 'Position', [ X, Y, W/2, L ] ...
 );
 % - pop ups
-stimuli_fs = get_gui_fields( config.STIMULI );
+stimuli_fs = get_gui_fields( config.STIMULI.setup );
 handle_stimuli_popup();
 
 % - TASK TIMES
@@ -255,7 +255,7 @@ function handle_stimuli_popup(source, event)
     stim_ind = 1;
     stim_name = stimuli_fs{ stim_ind };
   end
-  stim = config.STIMULI.(stim_name);
+  stim = config.STIMULI.setup.(stim_name);
   props = fieldnames( stim );
   non_editable = [ stim.non_editable, {'non_editable'} ];
   props = exclude_values( props, non_editable );
@@ -340,22 +340,22 @@ function handle_stimuli_popup(source, event)
     need_update = false;
     
     if ( isequal(prop_name, 'class') )
-      original_val = config.STIMULI.(stim_name_).(prop_name);
+      original_val = config.STIMULI.setup.(stim_name_).(prop_name);
       if ( ~isequal(original_val, prop_val_) )
         need_update = true;
         switch ( prop_val_ )
           case 'Rectangle'
-            config.STIMULI.(stim_name_) = ...
-              rmfield( config.STIMULI.(stim_name_), 'image_file' );
+            config.STIMULI.setup.(stim_name_) = ...
+              rmfield( config.STIMULI.setup.(stim_name_), 'image_file' );
           case 'Image'
-            config.STIMULI.(stim_name_).image_file = '';
+            config.STIMULI.setup.(stim_name_).image_file = '';
           otherwise
             error( 'Unrecognized class value ''%s''', prop_val_ );
         end
       end
     end
     
-    config.STIMULI.(stim_name_).(prop_name) = prop_val_;
+    config.STIMULI.setup.(stim_name_).(prop_name) = prop_val_;
     hww_gng.config.save( config );
     
     if ( need_update )
