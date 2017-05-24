@@ -67,7 +67,7 @@ layers(1) = [];
 
 firstfield = current_layer{1};
 
-structure.(firstfield) = layeredstruct(layers, fillwith, structure);
+structure.(firstfield) = hww_gng.util.layeredstruct(layers, fillwith, structure);
 current_layer(1) = [];
 
 if isempty(current_layer)

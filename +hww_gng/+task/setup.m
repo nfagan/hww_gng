@@ -74,6 +74,7 @@ if ( INTERFACE.use_arduino )
   messages = SERIAL.messages;
   channels = SERIAL.channels;
   SERIAL.comm = serial_comm.SerialManager( port, messages, channels );
+  SERIAL.comm.start();
 else
   SERIAL.comm = [];
 end

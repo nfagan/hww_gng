@@ -32,6 +32,7 @@ META.etc = '';
 META.block = '';
 
 % - INTERFACE - %
+KbName( 'UnifyKeyNames' );
 INTERFACE.use_eyelink = true;
 INTERFACE.use_arduino = true;
 INTERFACE.save_data = true;
@@ -147,13 +148,13 @@ STIMULI.setup.rwd_drop = struct( ...
 );
 
 % - SERIAL - %
-SERIAL.port = 'COM3';
+SERIAL.port = 'COM5';
 SERIAL.messages = struct();
 SERIAL.channels = { 'A' };
 SERIAL.gui_fields.include = { 'port' };
 
 % - REWARDS - %
-REWARDS.main = 100;
+REWARDS.main = 200;
 
 % - STORE - %
 opts.STATES =     STATES;

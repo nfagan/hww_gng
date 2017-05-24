@@ -2,6 +2,7 @@ function cleanup()
 
 sca;
 ListenChar( 0 );
+hww_gng.util.close_ports();
 try
   Eyelink( 'StopRecording' )
 catch err
