@@ -1,7 +1,6 @@
 *.m~
 *.asv
 .DS_Store
-stimuli/
 notes/
 +hww_gng/+config/default.mat
 +hww_gng/+config/config.mat
