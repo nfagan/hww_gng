@@ -11,6 +11,7 @@ function opts = setup()
 hww_gng.util.update_images();
 
 opts = hww_gng.config.load();
+opts = hww_gng.config.reconcile( opts );
 
 IO =        opts.IO;
 INTERFACE = opts.INTERFACE;

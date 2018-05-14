@@ -12,7 +12,7 @@ function varargout = start(varargin)
 
 narginchk( 0, 1 );
 
-config = hww_gng.config.load();
+config = hww_gng.config.reconcile( hww_gng.config.load() );
 
 persistent figure_handle;
 

@@ -239,7 +239,8 @@ while ( true )
       cue.put( 'center' );
       targ_duration = go_target.targets{1}.duration;
       rect_cue_target = cue.targets{1};
-      w_rect = [ 0, 0, 1600, 900 ];
+%       w_rect = [ 0, 0, 1600, 900 ];
+      w_rect = Screen( 'Rect', WINDOW.index );
       if ( is_target_left )
         trap_cue_placement = 'left';
       else
