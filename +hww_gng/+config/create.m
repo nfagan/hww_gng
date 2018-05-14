@@ -8,7 +8,8 @@ function create()
 
 % - STATES - %
 STATES.sequence = { 'new_trial', 'fixation', 'display_go_nogo_cue' ...
-  , 'delay_post_cue_display', 'go_nogo', 'error_go_nogo', 'reward', 'iti' };
+  , 'delay_post_cue_display', 'go_nogo', 'error_go_nogo', 'reward', 'iti' ...
+  , 'error_broke_cue_fixation' };
 
 % - SCREEN + WINDOW - %
 SCREEN.index = 2;
@@ -55,6 +56,7 @@ time_in.display_go_nogo_cue = 0;
 time_in.delay_post_cue_display = 0;
 time_in.go_nogo = 2;
 time_in.error_go_nogo = 3;
+time_in.error_broke_cue_fixation = 3;
 time_in.reward = .5;
 time_in.iti = 1;
 
@@ -63,7 +65,8 @@ fixations.go_target = 1;
 fixations.go_cue = 1;
 fixations.nogo_cue = 1;
 
-delays.delay_post_cue_display = 0:.05:1.5;
+%delays.delay_post_cue_display = 0:.05:1.5;
+delays.delay_post_cue_display = 0:.05:0.1;
 
 TIMINGS.time_in = time_in;
 TIMINGS.fixations = fixations;
@@ -137,6 +140,15 @@ STIMULI.setup.error_cue = struct( ...
   , 'non_editable',     non_editable_properties ...
 );
 
+STIMULI.setup.error_cue_broke_cue_fixation = struct( ...
+    'class',            'Rectangle' ...
+  , 'size',             [ 800, 800 ] ...
+  , 'color',            [ 204, 247, 131 ] ...
+  , 'placement',        'center' ...
+  , 'has_target',       false ...
+  , 'non_editable',     non_editable_properties ...
+);
+
 STIMULI.setup.rwd_drop = struct( ...
     'class',            'Rectangle' ...
   , 'size',             [ 800, 800 ] ...
@@ -167,10 +179,11 @@ STIMULI.setup.rwd_drop = struct( ...
 % );
 
 % - SERIAL - %
-SERIAL.port = 'COM5';
+SERIAL.reward_port = 'COM5';
+SERIAL.plex_port = 'COM7';
 SERIAL.messages = struct();
 SERIAL.channels = { 'A' };
-SERIAL.gui_fields.include = { 'port' };
+SERIAL.gui_fields.include = { 'reward_port', 'plex_port' };
 
 % - REWARDS - %
 REWARDS.main = 200;
