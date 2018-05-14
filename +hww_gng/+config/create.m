@@ -27,6 +27,7 @@ IO.data_file = 'txst.mat';
 IO.edf_folder = fullfile( IO.repo_dir, 'hww_gng', 'data' );
 IO.data_folder = fullfile( IO.repo_dir, 'hww_gng', 'data' );
 IO.stim_path = fullfile( IO.repo_dir, 'hww_gng', 'stimuli' );
+IO.dependencies = struct( 'repositories', {{ 'ptb_helpers', 'serial_comm' }} );
 IO.gui_fields.include = { 'data_file', 'edf_file' };
 
 % - META - %
