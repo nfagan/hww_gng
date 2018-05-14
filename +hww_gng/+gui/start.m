@@ -14,13 +14,22 @@ narginchk( 0, 1 );
 
 config = hww_gng.config.load();
 
+persistent figure_handle;
+
 if ( nargin == 1 )
   F = varargin{1};
   set_position = false;
 else
-  F = figure;
-  set_position = true;
+  if ( isempty(figure_handle) || ~isvalid(figure_handle) )
+    F = figure;
+    set_position = true;
+    figure_handle = F;
+  else
+    F = figure_handle;
+    set_position = false;
+  end
 end
+
 F_W = .75;
 F_L = .8;
 F_X = (1-F_W)/2;
@@ -85,10 +94,20 @@ text_pos =  struct( 'x', 0, 'y',  0, 'w', .5 );
 field_pos = struct( 'x', .5, 'y', 0, 'w', .5 );
 text_field_creator( panels.screen, 'SCREEN', {}, text_pos, field_pos );
 
+% - Delays
+
+panels.delays = uipanel( panels.interface ...
+  , 'Title', 'Delays' ...
+  , 'Position', [ .5, 0, .25, .33 ] ...
+);
+text_pos =  struct( 'x', 0, 'y',  0, 'w', .5 );
+field_pos = struct( 'x', .5, 'y', 0, 'w', .5 );
+text_field_creator( panels.delays, 'TIMINGS', {'delays'}, text_pos, field_pos );
+
 % - Serial port specifiers
 panels.serial = uipanel( panels.interface ...
   , 'Title', 'Serial' ...
-  , 'Position', [ .5, 0, .25, .5 ] ...
+  , 'Position', [ .5, .33, .25, .33 ] ...
 );
 text_pos =  struct( 'x', 0, 'y',  0, 'w', .5 );
 field_pos = struct( 'x', .5, 'y', 0, 'w', .5 );
@@ -97,7 +116,7 @@ text_field_creator( panels.serial, 'SERIAL', {}, text_pos, field_pos );
 % - Rewards - %
 panels.reward = uipanel( panels.interface ...
   , 'Title', 'Reward' ...
-  , 'Position', [ .5, .5, .25, .5 ] ...
+  , 'Position', [ .5, .66, .25, .33 ] ...
 );
 text_pos =  struct( 'x', 0,   'y', 0, 'w', .5 );
 field_pos = struct( 'x', .5,  'y', 0, 'w', .5 );
@@ -140,7 +159,7 @@ panels.run = uipanel( F ...
   , 'Position', [ X, Y, W, L ] ...
 );
 
-funcs = { 'hard reset', 'reset to default', 'make default' ...
+funcs = { 'hard reset', 'reset to default', 'make default', 'check latest edf' ...
   , 'clean-up', 'start' };
 w = .5;
 l = 1 / numel(funcs);
@@ -209,6 +228,9 @@ function handle_button(source, event)
       hww_gng.config.save( config );
       clf( F );
       hww_gng.gui.start( F );
+    case 'check latest edf'
+      hww_gng.config.save( config );
+      hww_gng.util.check_latest_edf();
     case 'make default'
       hww_gng.config.save( config, '-default' );
     case 'hard reset'
