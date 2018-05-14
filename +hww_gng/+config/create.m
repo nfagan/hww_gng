@@ -1,10 +1,14 @@
-function create()
+function opts = create(do_save)
 
 %   CREATE -- Create the config file.
 %
 %     Set default values in this file; to edit them, load the config file
 %     via opts = hww_gng.config.load(). Edit the loaded config file, then
 %     save it with hww_gng.config.save( opts ).
+
+if ( nargin < 1 )
+  do_save = true;
+end
 
 % - STATES - %
 STATES.sequence = { 'new_trial', 'fixation', 'display_go_nogo_cue' ...
@@ -200,8 +204,10 @@ opts.STIMULI =    STIMULI;
 opts.SERIAL =     SERIAL;
 opts.REWARDS =    REWARDS;
 
-hww_gng.config.save( opts );
-hww_gng.config.save( opts, '-default' );
+if ( do_save )
+  hww_gng.config.save( opts );
+  hww_gng.config.save( opts, '-default' );
+end
 
 end
 
