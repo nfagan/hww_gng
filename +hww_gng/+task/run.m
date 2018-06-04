@@ -64,6 +64,7 @@ while ( true )
         DATA(tn).error__broke_cue_fixation =   error__broke_cue_fixation;
         DATA(tn).error__wrong_go_nogo =   error__wrong_go_nogo;
         DATA(tn).events =                 PROGRESS;
+        DATA(tn).reward =                 current_reward;
         %   display progress
         for i = 1:numel(go_fs)
           for j = 1:numel(soc_fs)
@@ -134,6 +135,19 @@ while ( true )
       select_files = select_files( perm_index );
       cue.image = select_images{1};
       current_image_file = select_files{1};
+      
+      %   get current reward size
+      all_rewards = REWARDS.main;
+      reward_ind = randi( numel(all_rewards), 1 );
+      current_reward = all_rewards(reward_ind);
+      
+      if ( isKey(REWARDS.color_map, current_reward) )
+        current_color = REWARDS.color_map(current_reward);
+      else
+        warning( 'No color associated with size "%s"!', num2str(current_reward) );
+        current_color = zeros( 1, 3 );
+      end
+      
       first_entry = false;
     end
     if ( TIMER.duration_met('new_trial') )
@@ -175,6 +189,8 @@ while ( true )
   if ( isequal(cstate, 'display_go_nogo_cue') )
     if ( first_entry )
       TIMER.reset_timers( cstate );
+      rwd_border = STIMULI.reward_size_border;
+      rwd_border.color = current_color;
       cue.put( 'center' );
       log_progress = true;
       did_show_cue = false;
@@ -185,6 +201,7 @@ while ( true )
     cue.update_targets();
     if ( ~did_show_cue )
       cue.draw();
+      rwd_border.draw_frame();
       Screen( 'Flip', WINDOW.index );
       did_show_cue = true;
     end
@@ -263,6 +280,7 @@ while ( true )
     if ( ~did_show_images )
       go_target.draw();
       cue.draw();
+      rwd_border.draw_frame();
       Screen( 'Flip', WINDOW.index );
       did_show_images = true;
     end
@@ -292,7 +310,8 @@ while ( true )
         current_time = TIMER.get_time( 'go_nogo' );
         reaction_time = current_time - state_entry_time - targ_duration;
         trial_outcome = 'go';
-        cstate = 'reward';
+%         cstate = 'reward';
+        cstate = 'delay_post_go';
         first_entry = true;
       end
     end
@@ -304,6 +323,26 @@ while ( true )
       else
         cstate = 'reward';
       end
+      first_entry = true;
+    end
+  end
+  
+  if ( isequal(cstate, 'delay_post_go') )
+    if ( first_entry )
+      TIMER.reset_timers( cstate );
+      state_dur = TIMINGS.time_in.delay_post_go - reaction_time;
+      
+      if ( state_dur < 0 )
+        state_dur = 0;
+      end
+      
+      TIMER.set_durations( cstate, state_dur );
+      log_progress = true;
+      first_entry = false;
+    end
+    if ( TIMER.duration_met('delay_post_go') )
+      %   MARK: goto: reward
+      cstate = 'reward';
       first_entry = true;
     end
   end
@@ -354,7 +393,7 @@ while ( true )
     if ( first_entry )
       TIMER.reset_timers( cstate );
       if ( INTERFACE.use_arduino )
-        comm.reward( 'A', REWARDS.main );
+        comm.reward( 'A', current_reward );
       end
       rwd_drop = STIMULI.rwd_drop;
       current_correct = n_correct.(trial_type).(cue_type);
@@ -363,6 +402,7 @@ while ( true )
       first_entry = false;
     end
     rwd_drop.draw();
+    rwd_border.draw_frame();
     Screen( 'Flip', WINDOW.index );
     if ( log_progress )
       PROGRESS.go_target_offset = TIMER.get_time( 'task' );
@@ -401,7 +441,7 @@ while ( true )
     if ( key_code(INTERFACE.stop_key) ), break; end;
     %   Deliver reward if reward key is pressed
     if ( key_code(INTERFACE.rwd_key) && INTERFACE.use_arduino )
-      comm.reward( 'A', REWARDS.main );
+      comm.reward( 'A', REWARDS.key_press );
     end
   end
   

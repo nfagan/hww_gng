@@ -8,6 +8,8 @@ function opts = setup()
 %       - `opts` (struct) -- Config file, with additional parameters
 %         appended.
 
+%   make sure Psychtoolbox is on the search path
+hww_gng.util.try_add_ptoolbox();
 hww_gng.util.update_images();
 
 opts = hww_gng.config.load();
@@ -18,6 +20,8 @@ INTERFACE = opts.INTERFACE;
 TIMINGS =   opts.TIMINGS;
 STIMULI =   opts.STIMULI;
 SERIAL =    opts.SERIAL;
+
+Screen( 'Preference', 'SkipSyncTests', double(INTERFACE.skip_sync_tests) );
 
 KbName( 'UnifyKeyNames' );
 
@@ -68,6 +72,11 @@ for i = 1:numel(stim_fs)
     stim_.make_target( TRACKER, duration );
     stim_.targets{1}.padding = padding;
   end
+  
+  if ( isfield(stim, 'pen_width') )
+    stim_.pen_width = stim.pen_width;
+  end
+  
   STIMULI.(stim_fs{i}) = stim_;
 end
 
