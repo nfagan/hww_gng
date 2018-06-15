@@ -310,8 +310,8 @@ while ( true )
         current_time = TIMER.get_time( 'go_nogo' );
         reaction_time = current_time - state_entry_time - targ_duration;
         trial_outcome = 'go';
-%         cstate = 'reward';
-        cstate = 'delay_post_go';
+        cstate = 'reward';
+%         cstate = 'delay_post_go';
         first_entry = true;
       end
     end
