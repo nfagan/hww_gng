@@ -56,20 +56,21 @@ images = STIMULI.setup.images;
 
 image_categories = shared_utils.io.dirnames( fullfile(opts.IO.stim_path, 'targets', 'social'), 'folders' );
 img_exts = { '.png', '.jpg', '.jpeg', '.JPG' };
+max_n_images = opts.STRUCTURE.max_n_images;
 
 fprintf( '\n Loading images ...' );
 
 for i = 1:numel(image_categories)
   c = image_categories{i};
-  images.targets.social.(c) = get_images( opts.IO.stim_path, {'targets', 'social', c}, img_exts );
-  images.targets.nonsocial.(c) = get_images( opts.IO.stim_path, {'targets', 'nonsocial', c}, img_exts );
+  images.targets.social.(c) = get_images( opts.IO.stim_path, {'targets', 'social', c}, img_exts, max_n_images );
+  images.targets.nonsocial.(c) = get_images( opts.IO.stim_path, {'targets', 'nonsocial', c}, img_exts, max_n_images );
 end
 
 size_categories = shared_utils.io.dirnames( fullfile(opts.IO.stim_path, 'reward', 'size_cues'), 'folders' );
 
 for i = 1:numel(size_categories)
   c = size_categories{i};
-  images.reward_size_cues.(c) = get_images( opts.IO.stim_path, {'reward', 'size_cues', c}, img_exts );
+  images.reward_size_cues.(c) = get_images( opts.IO.stim_path, {'reward', 'size_cues', c}, img_exts, max_n_images );
 end
 
 fprintf( ' Done.' );
@@ -136,7 +137,7 @@ opts.SERIAL =     SERIAL;
 
 end
 
-function images = get_images( stim_path, subdirs, extension )
+function images = get_images( stim_path, subdirs, extension, max_n )
 
 stim_path = fullfile( stim_path, subdirs{:} );
 
@@ -144,6 +145,11 @@ if ( ischar(extension) ), extension = { extension }; end
 
 image_names = cellfun( @(x) get_image_names_one_ext(stim_path, x), extension(:)', 'un', 0 );
 image_names = horzcat( image_names{:} );
+
+if ( ~isinf(max_n) )
+  use_n = min( numel(image_names), max_n );
+  image_names = image_names(1:use_n);
+end
 
 images.matrices = cellfun( @(x) imread(fullfile(stim_path, x)), image_names, 'un', false );
 images.filenames = image_names;
