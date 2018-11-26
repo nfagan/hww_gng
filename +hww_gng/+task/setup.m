@@ -157,6 +157,11 @@ images.filenames = image_names;
 end
 
 function image_names = get_image_names_one_ext(stim_path, ext)
-image_names = hww_gng.util.dirstruct( stim_path, ext );
-image_names = { image_names(:).name };
+try 
+  image_names = hww_gng.util.dirstruct( stim_path, ext );
+  image_names = { image_names(:).name };
+catch err
+  warning( err.message );
+  image_names = {};
+end
 end
