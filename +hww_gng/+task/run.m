@@ -70,6 +70,7 @@ while ( true )
         DATA(tn).error__no_fixation =     error__no_fixation;
         DATA(tn).error__broke_cue_fixation =   error__broke_cue_fixation;
         DATA(tn).error__wrong_go_nogo =   error__wrong_go_nogo;
+        DATA(tn).error__broke_reward_info_cue_fixation = error__broke_reward_info_cue_fixation;
         DATA(tn).events =                 PROGRESS;
         DATA(tn).reward =                 current_reward;
         DATA(tn).reward_size =            reward_size_name;
@@ -129,6 +130,8 @@ while ( true )
       error__no_fixation = false;
       error__wrong_go_nogo = false;
       error__broke_cue_fixation = false;
+      error__broke_reward_info_cue_fixation = false;
+      
       if ( is_go )
         cue = go_cue;
         trial_type = 'go';
@@ -256,6 +259,7 @@ while ( true )
       TIMER.reset_timers( cstate );
       
       reward_size_cue = STIMULI.reward_size_cue;
+      reward_size_cue.reset_targets();
       
       log_progress = true;
       did_show_cue = false;
@@ -265,6 +269,7 @@ while ( true )
     end
     
     TRACKER.update_coordinates();
+    reward_size_cue.update_targets();
     
     if ( ~did_show_cue )
       reward_size_cue.draw();
@@ -278,13 +283,35 @@ while ( true )
       log_progress = false;
     end
     
-    if ( TIMER.duration_met(cstate) )
+    if ( ~reward_size_cue.in_bounds() )
+      cstate = 'reward_info_cue_error';
+      first_entry = true;
+    elseif ( TIMER.duration_met(cstate) )
       %   MARK: goto: display_go_nogo_cue
       cstate = 'display_go_nogo_cue';
       first_entry = true;
     end
   end
   
+  if ( isequal(cstate, 'reward_info_cue_error') )
+    if ( first_entry )
+      Screen( 'Flip', opts.WINDOW.index );
+      TIMER.reset_timers( cstate );
+      error__broke_reward_info_cue_fixation = true;
+      
+      PROGRESS.(cstate) = TIMER.get_time( 'task' );
+      
+      first_entry = false;
+    end
+    
+    TRACKER.update_coordinates();
+    
+    if ( TIMER.duration_met(cstate) )
+      %   MARK: goto: new_trial
+      cstate = 'new_trial';
+      first_entry = true;
+    end
+  end
   
   if ( isequal(cstate, 'display_go_nogo_cue') )
     if ( first_entry )
