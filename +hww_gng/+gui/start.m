@@ -46,7 +46,7 @@ set( F, 'resize', 'on' );
 set( F, 'menubar', 'none' );
 set( F, 'toolbar', 'none' );
 set( F, 'units', 'normalized' );
-set( F, 'name', 'Brains GUI' );
+set( F, 'name', 'go-nogo' );
 
 % - INTERFACE - %
 panels.interface = uipanel( F ...
@@ -118,18 +118,23 @@ panels.reward = uipanel( panels.interface ...
   , 'Title', 'Reward' ...
   , 'Position', [ .5, .66, .25, .33 ] ...
 );
-text_pos =  struct( 'x', 0,   'y', 0, 'w', .5 );
-field_pos = struct( 'x', .5,  'y', 0, 'w', .5 );
-text_field_creator( panels.reward, 'REWARDS', {}, text_pos, field_pos );
+
+reward_panel = shared_utils.gui.TextFieldDropdown();
+reward_panel.parent = panels.reward;
+reward_panel.on_change = @handle_reward_change;
+reward_panel.set_data( config.REWARDS );
 
 % - STRUCTURE - %
 panels.structure = uipanel( panels.interface ...
   , 'Title', 'Structure' ...
   , 'Position', [ .75, 0, .25, 1 ] ...
 );
-text_pos =  struct( 'x', 0,   'y', 0, 'w', .5 );
-field_pos = struct( 'x', .5,  'y', 0, 'w', .5 );
-text_field_creator( panels.structure, 'STRUCTURE', {}, text_pos, field_pos );
+
+structure_panel = shared_utils.gui.TextFieldDropdown();
+structure_panel.parent = panels.structure;
+structure_panel.orientation = 'vertical';
+structure_panel.on_change = @handle_structure_change;
+structure_panel.set_data( config.STRUCTURE );
 
 Y = Y + L;
 
@@ -369,8 +374,12 @@ function handle_stimuli_popup(source, event)
         need_update = true;
         switch ( prop_val_ )
           case 'Rectangle'
-            config.STIMULI.setup.(stim_name_) = ...
-              rmfield( config.STIMULI.setup.(stim_name_), 'image_file' );
+            try
+              config.STIMULI.setup.(stim_name_) = ...
+                rmfield( config.STIMULI.setup.(stim_name_), 'image_file' );
+            catch err
+              warning( err.message );
+            end
           case 'Image'
             config.STIMULI.setup.(stim_name_).image_file = '';
           otherwise
@@ -533,6 +542,18 @@ function handle_reward_size_setup()
   
   end
 end
+
+  function handle_reward_change(old, new, target)
+    config.REWARDS = new;
+    
+    hww_gng.config.save( config );
+  end
+
+  function handle_structure_change(old, new, target)
+    config.STRUCTURE = new;
+    
+    hww_gng.config.save( config );
+  end
 
 end
 

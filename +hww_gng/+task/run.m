@@ -21,6 +21,8 @@ cstate = 'new_trial';
 
 first_entry = true;
 
+is_social_targets = strcmp( STRUCTURE.target_types, 'social' );
+
 DATA = struct();
 PROGRESS = struct();
 TRIAL_NUMBER = 0;
@@ -35,6 +37,9 @@ opts.PLEX_SYNC.sync_frequency = 0.5;  % s
 opts.PLEX_SYNC.sync_timer = NaN;
 opts.PLEX_SYNC.sync_times = nan( 1e4, 1 );
 opts.PLEX_SYNC.sync_iteration = 1;
+
+reward_size_name = '';
+reward_size_cue_filename = '';
 
 while ( true )
   
@@ -58,6 +63,8 @@ while ( true )
         DATA(tn).image_file =             current_image_file;
         DATA(tn).target_placement =       target_placement;
         DATA(tn).target_displacement =    target_displacement;
+        DATA(tn).target_image_category =  target_image_category;
+        DATA(tn).target_type =            target_type;
         DATA(tn).cue_delay =              cue_delay;
         DATA(tn).reaction_time =          reaction_time;
         DATA(tn).error__no_fixation =     error__no_fixation;
@@ -65,6 +72,8 @@ while ( true )
         DATA(tn).error__wrong_go_nogo =   error__wrong_go_nogo;
         DATA(tn).events =                 PROGRESS;
         DATA(tn).reward =                 current_reward;
+        DATA(tn).reward_size =            reward_size_name;
+        DATA(tn).reward_size_cue_file =   reward_size_cue_filename;
         %   display progress
         for i = 1:numel(go_fs)
           for j = 1:numel(soc_fs)
@@ -89,7 +98,13 @@ while ( true )
       TRACKER.send( sprintf('TRIAL__%d', TRIAL_NUMBER) );
       %   establish go v no go, social v. nonsocial
       is_go = rand() < STRUCTURE.p_go;
-      is_social = rand() < STRUCTURE.p_social;
+      
+      if ( is_social_targets )
+        is_social = true;
+      else
+        is_social = rand() < STRUCTURE.p_social;
+      end
+      
       is_target_left = rand() < STRUCTURE.p_target_left;
       images = STIMULI.setup.images;
       go_cue = STIMULI.go_cue;
@@ -126,20 +141,64 @@ while ( true )
       else
         cue_type = 'nonsocial';
       end
+      
+      target_image_categories = STIMULI.setup.target_image_categories;
+      
+      if ( is_social_targets )
+        target_image_category = get_target_image_category( target_image_categories );
+        target_type = cue_type;
+      else
+        target_image_category = '';
+        target_type = '';
+      end
+      
       %   get current image file
-      select_images = images.(trial_type).(cue_type).matrices;
-      select_files = images.(trial_type).(cue_type).filenames;
+      if ( is_social_targets )
+        select_images = images.targets.(target_type).(target_image_category).matrices;
+        select_files = images.targets.(target_type).(target_image_category).filenames;
+      else
+        select_images = images.(trial_type).(cue_type).matrices;
+        select_files = images.(trial_type).(cue_type).filenames;
+      end
+      
       n_images = numel( select_images );
       perm_index = randperm( n_images );
       select_images = select_images( perm_index );
       select_files = select_files( perm_index );
-      cue.image = select_images{1};
       current_image_file = select_files{1};
       
+      if ( is_social_targets )
+        go_target = STIMULI.go_target;
+        
+        if ( isa(go_target, 'Image') )
+          go_target.image = select_images{1};
+        else
+          warning( 'Go target is not an image; not setting image file.' );
+        end
+      else
+        cue.image = select_images{1};
+      end
+      
+      if ( TRIAL_NUMBER == 1 || did_show_reward_info_cue )
+        block_size = STRUCTURE.reward_block_size;
+        n_conditions = 3;
+        
+        reward_size_index = get_next_reward_size_index( block_size, n_conditions );
+        reward_size_name = get_reward_size_name( reward_size_index );
+      end
+      
+      fprintf( 'REWARD SIZE INDEX: %d', reward_size_index );
+      
+      did_show_reward_info_cue = false;
+      
       %   get current reward size
-      all_rewards = REWARDS.main;
-      reward_ind = randi( numel(all_rewards), 1 );
-      current_reward = all_rewards(reward_ind);
+      if ( is_social_targets )
+        current_reward = REWARDS.(reward_size_name);
+      else
+        all_rewards = REWARDS.main;
+        reward_ind = randi( numel(all_rewards), 1 );
+        current_reward = all_rewards(reward_ind);
+      end
       
       if ( isKey(REWARDS.color_map, current_reward) )
         current_color = REWARDS.color_map(current_reward);
@@ -175,7 +234,13 @@ while ( true )
     end
     if ( fix_square.duration_met() )
       %   MARK: goto: display_go_nogo_cue
-      cstate = 'display_go_nogo_cue';
+      
+      if ( STRUCTURE.use_reward_cue )
+        cstate = 'display_reward_info_cue';
+      else
+        cstate = 'display_go_nogo_cue';
+      end
+      
       first_entry = true;
     end
     if ( TIMER.duration_met('fixation') )
@@ -185,6 +250,41 @@ while ( true )
       first_entry = true;
     end
   end
+  
+  if ( isequal(cstate, 'display_reward_info_cue') )
+    if ( first_entry )
+      TIMER.reset_timers( cstate );
+      
+      reward_size_cue = STIMULI.reward_size_cue;
+      
+      log_progress = true;
+      did_show_cue = false;
+      first_entry = false;
+      
+      reward_size_cue_filename = configure_reward_size_cue( reward_size_cue, images.reward_size_cues, reward_size_name );
+    end
+    
+    TRACKER.update_coordinates();
+    
+    if ( ~did_show_cue )
+      reward_size_cue.draw();
+      Screen( 'Flip', WINDOW.index );
+      did_show_cue = true;
+      did_show_reward_info_cue = true;
+    end
+    
+    if ( log_progress )
+      PROGRESS.reward_info_cue_onset = TIMER.get_time( 'task' );
+      log_progress = false;
+    end
+    
+    if ( TIMER.duration_met(cstate) )
+      %   MARK: goto: display_go_nogo_cue
+      cstate = 'display_go_nogo_cue';
+      first_entry = true;
+    end
+  end
+  
   
   if ( isequal(cstate, 'display_go_nogo_cue') )
     if ( first_entry )
@@ -461,5 +561,77 @@ if ( INTERFACE.save_data )
   data.date = datestr( now );
   save( fullfile(IO.data_folder, IO.data_file), 'data' );
 end
+
+end
+
+function fname = configure_reward_size_cue(reward_size_cue, reward_images, reward_size_name)
+
+if ( ~isa(reward_size_cue, 'Image') )
+  warning( 'Stimulus was not an image; returning ...' );
+  return
+end
+
+if ( ~isfield(reward_images, reward_size_name) )
+  warning( 'No images match reward size: "%s".', reward_size_name );
+  return
+end
+
+images_this_size = reward_images.(reward_size_name);
+
+N = numel( images_this_size.matrices );
+
+if ( N == 0 )
+  warning( 'No images were present.' );
+  return
+end
+
+ind = randi( N, 1 );
+fname = images_this_size.filenames{ind};
+
+reward_size_cue.image = images_this_size.matrices{ind};
+
+end
+
+function name = get_reward_size_name(index)
+
+switch ( index )
+  case 1
+    name = 'small';
+  case 2
+    name = 'medium';
+  case 3
+    name = 'large';
+  otherwise
+    error( 'Unrecognized reward index: %d', index );
+end
+
+end
+
+function idx = get_next_reward_size_index(block_size, n_conditions)
+
+persistent indices;
+persistent stp;
+
+if ( isempty(stp) || stp == block_size )
+  stp = 1;
+  indices = hww_gng.util.get_blocked_condition_indices( 1, block_size, n_conditions );  
+else
+  stp = stp + 1;
+end
+
+idx = indices(stp);
+
+end
+
+function c = get_target_image_category(categories)
+
+if ( isempty(categories) )
+  warning( 'No social image categories specified.' );
+  c = '';
+  return
+end
+
+inds = randperm( numel(categories) );
+c = categories{inds(1)};
 
 end
