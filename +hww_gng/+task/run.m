@@ -43,6 +43,8 @@ reward_size_cue_filename = '';
 
 while ( true )
   
+  comm.update();
+  
   if ( isnan(opts.PLEX_SYNC.sync_timer) || ...
       toc(opts.PLEX_SYNC.sync_timer) >= opts.PLEX_SYNC.sync_frequency )
     sync_comm.sync_pulse( 0 );
@@ -168,12 +170,15 @@ while ( true )
       perm_index = randperm( n_images );
       select_images = select_images( perm_index );
       select_files = select_files( perm_index );
-      current_image_file = select_files{1};
+      
+      if ( ~isempty(select_files) )
+        current_image_file = select_files{1};
+      end
       
       if ( is_social_targets )
         go_target = STIMULI.go_target;
         
-        if ( isa(go_target, 'Image') )
+        if ( isa(go_target, 'Image') && ~isempty(select_images) )
           go_target.image = select_images{1};
         else
           warning( 'Go target is not an image; not setting image file.' );
@@ -259,7 +264,14 @@ while ( true )
       TIMER.reset_timers( cstate );
       
       reward_size_cue = STIMULI.reward_size_cue;
+      fix_square = STIMULI.fix_square;
+      
       reward_size_cue.reset_targets();
+      fix_square.reset_targets();
+      
+      reward_shift = STIMULI.setup.reward_size_cue.shift;      
+      reward_size_cue.put( 'center' );
+      reward_size_cue.shift( reward_shift(1), reward_shift(2) );
       
       log_progress = true;
       did_show_cue = false;
@@ -270,9 +282,11 @@ while ( true )
     
     TRACKER.update_coordinates();
     reward_size_cue.update_targets();
+    fix_square.update_targets();
     
     if ( ~did_show_cue )
       reward_size_cue.draw();
+      fix_square.draw();
       Screen( 'Flip', WINDOW.index );
       did_show_cue = true;
       did_show_reward_info_cue = true;
@@ -283,7 +297,7 @@ while ( true )
       log_progress = false;
     end
     
-    if ( ~reward_size_cue.in_bounds() )
+    if ( ~fix_square.in_bounds() )
       cstate = 'reward_info_cue_error';
       first_entry = true;
     elseif ( TIMER.duration_met(cstate) )
@@ -519,9 +533,17 @@ while ( true )
   if ( isequal(cstate, 'reward') )
     if ( first_entry )
       TIMER.reset_timers( cstate );
+      
       if ( INTERFACE.use_arduino )
-        comm.reward( 'A', current_reward );
+        if ( is_social_targets )
+          for i = 1:reward_size_index
+            comm.reward( 'A', current_reward );
+          end
+        else
+          comm.reward( 'A', current_reward );
+        end
       end
+      
       rwd_drop = STIMULI.rwd_drop;
       current_correct = n_correct.(trial_type).(cue_type);
       n_correct.(trial_type).(cue_type) = current_correct + 1;
@@ -573,7 +595,7 @@ while ( true )
   end
   
   %   Quit if time exceeds total time
-  if ( TIMER.duration_met('task') ), break; end;  
+  if ( TIMER.duration_met('task') ), break; end;
 end
 
 Screen( 'Flip', WINDOW.index );

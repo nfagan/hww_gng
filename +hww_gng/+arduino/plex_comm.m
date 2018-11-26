@@ -38,5 +38,4 @@ classdef plex_comm < serial_comm.SerialManager
       fprintf( obj.comm, sprintf('%d', ind) );
     end
   end
-  
 end
