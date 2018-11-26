@@ -53,6 +53,9 @@ INTERFACE.gui_fields.exclude = { 'stop_key', 'rwd_key' };
 STRUCTURE.p_go = .7;
 STRUCTURE.p_social = .5;
 STRUCTURE.p_target_left = .5;
+STRUCTURE.target_types = 'nonsocial';
+STRUCTURE.use_reward_cue = 0;
+STRUCTURE.reward_block_size = 9;
 
 % - TIMINGS - %
 time_in.task = Inf;
@@ -66,6 +69,7 @@ time_in.error_go_nogo = 3;
 time_in.error_broke_cue_fixation = 3;
 time_in.reward = .5;
 time_in.iti = 1;
+time_in.display_reward_info_cue = 1;
 
 fixations.fix_square = .3;
 fixations.go_target = 1;
@@ -80,12 +84,14 @@ TIMINGS.fixations = fixations;
 TIMINGS.delays = delays;
 
 % - STIMULI - %
-images.go.social =        get_images( IO.stim_path, {'go', 'social'}, '.png' );
-images.go.nonsocial =     get_images( IO.stim_path, {'go', 'nonsocial'}, '.png' );
-images.nogo.social =      get_images( IO.stim_path, {'nogo', 'social'}, '.png' );
-images.nogo.nonsocial =   get_images( IO.stim_path, {'nogo', 'nonsocial'}, '.png' );
-images.error =            get_images( IO.stim_path, {'err'}, '.png' );
-images.reward =           get_images( IO.stim_path, {'reward'}, '.png' );
+images.go.social =            get_images( IO.stim_path, {'go', 'social'}, '.png' );
+images.go.nonsocial =         get_images( IO.stim_path, {'go', 'nonsocial'}, '.png' );
+images.nogo.social =          get_images( IO.stim_path, {'nogo', 'social'}, '.png' );
+images.nogo.nonsocial =       get_images( IO.stim_path, {'nogo', 'nonsocial'}, '.png' );
+images.error =                get_images( IO.stim_path, {'err'}, '.png' );
+images.reward =               get_images( IO.stim_path, {'reward'}, '.png' );
+images.targets.social =       get_images( IO.stim_path, {'targets', 'social'}, '.png' );
+images.targets.nonsocial =    get_images( IO.stim_path, {'targets', 'nonsocial'}, '.png' );
 
 STIMULI.setup.images = images;
 STIMULI.setup.gui_fields.exclude = { 'images' };
@@ -175,6 +181,15 @@ STIMULI.setup.rwd_drop = struct( ...
   , 'non_editable',     non_editable_properties ...
 );
 
+STIMULI.setup.reward_size_cue = struct( ...
+    'class',            'Rectangle' ...
+  , 'size',             [ 800, 800 ] ...
+  , 'color',            [ 255, 0, 0 ] ...
+  , 'placement',        'center' ...
+  , 'has_target',       false ...
+  , 'non_editable',     non_editable_properties ...
+);
+
 % STIMULI.setup.error_cue = struct( ...
 %     'class',            'Image' ...
 %   , 'image_matrix',     images.error.matrices{1} ...
@@ -206,6 +221,9 @@ SERIAL.gui_fields.include = { 'reward_port', 'plex_port' };
 REWARDS.main = 200;
 REWARDS.key_press = 200;
 REWARDS.color_map = containers.Map( 'keytype', 'double', 'valuetype', 'any' );
+REWARDS.small = 100;
+REWARDS.medium = 200;
+REWARDS.large = 300;
 REWARDS.gui_fields.exclude = { 'color_map' };
 
 % - STORE - %
@@ -235,5 +253,4 @@ image_names =       { image_names(:).name };
 images.matrices =   cellfun( @(x) imread(fullfile(stim_path, x)) ...
                       , image_names, 'un', false );
 images.filenames =  image_names;
-
 end

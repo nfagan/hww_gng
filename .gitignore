@@ -4,5 +4,7 @@
 archive/
 notes/
 data/
+stimuli/
+scrambled/
 +hww_gng/+config/default.mat
 +hww_gng/+config/config.mat

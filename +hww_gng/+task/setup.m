@@ -51,6 +51,32 @@ TRACKER.init();
 TIMER = Timer();
 TIMER.register( TIMINGS.time_in );
 
+% - IMAGES - %
+images = STIMULI.setup.images;
+
+image_categories = shared_utils.io.dirnames( fullfile(opts.IO.stim_path, 'targets', 'social'), 'folders' );
+img_exts = { '.png', '.jpg', '.jpeg', '.JPG' };
+
+fprintf( '\n Loading images ...' );
+
+for i = 1:numel(image_categories)
+  c = image_categories{i};
+  images.targets.social.(c) = get_images( opts.IO.stim_path, {'targets', 'social', c}, img_exts );
+  images.targets.nonsocial.(c) = get_images( opts.IO.stim_path, {'targets', 'nonsocial', c}, img_exts );
+end
+
+size_categories = shared_utils.io.dirnames( fullfile(opts.IO.stim_path, 'reward', 'size_cues'), 'folders' );
+
+for i = 1:numel(size_categories)
+  c = size_categories{i};
+  images.reward_size_cues.(c) = get_images( opts.IO.stim_path, {'reward', 'size_cues', c}, img_exts );
+end
+
+fprintf( ' Done.' );
+
+STIMULI.setup.target_image_categories = image_categories;
+STIMULI.setup.images = images;
+
 % - STIMULI - %
 stim_fs = fieldnames( STIMULI.setup );
 for i = 1:numel(stim_fs)
@@ -61,7 +87,11 @@ for i = 1:numel(stim_fs)
     case 'Rectangle'
       stim_ = WINDOW.Rectangle( stim.size );
     case 'Image'
-      im = stim.image_matrix;
+      if ( isfield(stim, 'image_matrix') )
+        im = stim.image_matrix;
+      else
+        im = [];
+      end
       stim_ = WINDOW.Image( stim.size, im );
   end
   stim_.color = stim.color;
@@ -104,4 +134,23 @@ opts.TIMER =      TIMER;
 opts.STIMULI =    STIMULI;
 opts.SERIAL =     SERIAL;
 
+end
+
+function images = get_images( stim_path, subdirs, extension )
+
+stim_path = fullfile( stim_path, subdirs{:} );
+
+if ( ischar(extension) ), extension = { extension }; end
+
+image_names = cellfun( @(x) get_image_names_one_ext(stim_path, x), extension(:)', 'un', 0 );
+image_names = horzcat( image_names{:} );
+
+images.matrices = cellfun( @(x) imread(fullfile(stim_path, x)), image_names, 'un', false );
+images.filenames = image_names;
+
+end
+
+function image_names = get_image_names_one_ext(stim_path, ext)
+image_names = hww_gng.util.dirstruct( stim_path, ext );
+image_names = { image_names(:).name };
 end
