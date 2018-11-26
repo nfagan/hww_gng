@@ -8,13 +8,20 @@ function opts = setup()
 %       - `opts` (struct) -- Config file, with additional parameters
 %         appended.
 
+%   make sure Psychtoolbox is on the search path
+hww_gng.util.try_add_ptoolbox();
+hww_gng.util.update_images();
+
 opts = hww_gng.config.load();
+opts = hww_gng.config.reconcile( opts );
 
 IO =        opts.IO;
 INTERFACE = opts.INTERFACE;
 TIMINGS =   opts.TIMINGS;
 STIMULI =   opts.STIMULI;
 SERIAL =    opts.SERIAL;
+
+Screen( 'Preference', 'SkipSyncTests', double(INTERFACE.skip_sync_tests) );
 
 KbName( 'UnifyKeyNames' );
 
@@ -65,16 +72,26 @@ for i = 1:numel(stim_fs)
     stim_.make_target( TRACKER, duration );
     stim_.targets{1}.padding = padding;
   end
+  
+  if ( isfield(stim, 'pen_width') )
+    stim_.pen_width = stim.pen_width;
+  end
+  
   STIMULI.(stim_fs{i}) = stim_;
 end
 
 % - SERIAL - %
+
+SERIAL.plex_comm = hww_gng.arduino.plex_comm( SERIAL.plex_port );
+SERIAL.plex_comm.bypass = ~INTERFACE.use_arduino;
+
 if ( INTERFACE.use_arduino )
-  port = SERIAL.port;
+  reward_port = SERIAL.reward_port;
   messages = SERIAL.messages;
   channels = SERIAL.channels;
-  SERIAL.comm = serial_comm.SerialManager( port, messages, channels );
+  SERIAL.comm = serial_comm.SerialManager( reward_port, messages, channels );
   SERIAL.comm.start();
+  SERIAL.plex_comm.start();
 else
   SERIAL.comm = [];
 end

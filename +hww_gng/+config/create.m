@@ -1,4 +1,4 @@
-function create()
+function opts = create(do_save)
 
 %   CREATE -- Create the config file.
 %
@@ -6,9 +6,14 @@ function create()
 %     via opts = hww_gng.config.load(). Edit the loaded config file, then
 %     save it with hww_gng.config.save( opts ).
 
+if ( nargin < 1 )
+  do_save = true;
+end
+
 % - STATES - %
 STATES.sequence = { 'new_trial', 'fixation', 'display_go_nogo_cue' ...
-  , 'delay_post_cue_display', 'go_nogo', 'error_go_nogo', 'reward', 'iti' };
+  , 'delay_post_cue_display', 'go_nogo', 'error_go_nogo', 'reward', 'iti' ...
+  , 'error_broke_cue_fixation' };
 
 % - SCREEN + WINDOW - %
 SCREEN.index = 2;
@@ -22,6 +27,7 @@ IO.data_file = 'txst.mat';
 IO.edf_folder = fullfile( IO.repo_dir, 'hww_gng', 'data' );
 IO.data_folder = fullfile( IO.repo_dir, 'hww_gng', 'data' );
 IO.stim_path = fullfile( IO.repo_dir, 'hww_gng', 'stimuli' );
+IO.dependencies = struct( 'repositories', {{ 'ptb_helpers', 'serial_comm' }} );
 IO.gui_fields.include = { 'data_file', 'edf_file' };
 
 % - META - %
@@ -40,6 +46,7 @@ INTERFACE.save_data = true;
 INTERFACE.allow_overwrite = false;
 INTERFACE.stop_key = KbName( 'escape' );
 INTERFACE.rwd_key = KbName( 'r' );
+INTERFACE.skip_sync_tests = false;
 INTERFACE.gui_fields.exclude = { 'stop_key', 'rwd_key' };
 
 % - STRUCTURE - %
@@ -54,7 +61,9 @@ time_in.fixation = 2;
 time_in.display_go_nogo_cue = 0;
 time_in.delay_post_cue_display = 0;
 time_in.go_nogo = 2;
+time_in.delay_post_go = 0.5;
 time_in.error_go_nogo = 3;
+time_in.error_broke_cue_fixation = 3;
 time_in.reward = .5;
 time_in.iti = 1;
 
@@ -63,7 +72,8 @@ fixations.go_target = 1;
 fixations.go_cue = 1;
 fixations.nogo_cue = 1;
 
-delays.delay_post_cue_display = 0:.05:1.5;
+%delays.delay_post_cue_display = 0:.05:1.5;
+delays.delay_post_cue_display = 0:.05:0.1;
 
 TIMINGS.time_in = time_in;
 TIMINGS.fixations = fixations;
@@ -91,6 +101,16 @@ STIMULI.setup.fix_square = struct( ...
   , 'target_padding',   50 ...
   , 'non_editable',     non_editable_properties ...
 );
+
+STIMULI.setup.reward_size_border = struct( ...
+    'class',            'Rectangle' ...
+  , 'size',             [ 1600, 900 ] ...
+  , 'color',            [ 255, 255, 255 ] ...
+  , 'pen_width',        100 ...
+  , 'placement',        'center' ...
+  , 'has_target',       false ...
+  , 'non_editable',     non_editable_properties ...
+);  
 
 STIMULI.setup.go_target = struct( ...
     'class',            'Rectangle' ...
@@ -137,6 +157,15 @@ STIMULI.setup.error_cue = struct( ...
   , 'non_editable',     non_editable_properties ...
 );
 
+STIMULI.setup.error_cue_broke_cue_fixation = struct( ...
+    'class',            'Rectangle' ...
+  , 'size',             [ 800, 800 ] ...
+  , 'color',            [ 204, 247, 131 ] ...
+  , 'placement',        'center' ...
+  , 'has_target',       false ...
+  , 'non_editable',     non_editable_properties ...
+);
+
 STIMULI.setup.rwd_drop = struct( ...
     'class',            'Rectangle' ...
   , 'size',             [ 800, 800 ] ...
@@ -167,13 +196,17 @@ STIMULI.setup.rwd_drop = struct( ...
 % );
 
 % - SERIAL - %
-SERIAL.port = 'COM5';
+SERIAL.reward_port = 'COM5';
+SERIAL.plex_port = 'COM7';
 SERIAL.messages = struct();
 SERIAL.channels = { 'A' };
-SERIAL.gui_fields.include = { 'port' };
+SERIAL.gui_fields.include = { 'reward_port', 'plex_port' };
 
 % - REWARDS - %
 REWARDS.main = 200;
+REWARDS.key_press = 200;
+REWARDS.color_map = containers.Map( 'keytype', 'double', 'valuetype', 'any' );
+REWARDS.gui_fields.exclude = { 'color_map' };
 
 % - STORE - %
 opts.STATES =     STATES;
@@ -187,8 +220,10 @@ opts.STIMULI =    STIMULI;
 opts.SERIAL =     SERIAL;
 opts.REWARDS =    REWARDS;
 
-hww_gng.config.save( opts );
-hww_gng.config.save( opts, '-default' );
+if ( do_save )
+  hww_gng.config.save( opts );
+  hww_gng.config.save( opts, '-default' );
+end
 
 end
 

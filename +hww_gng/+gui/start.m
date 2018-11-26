@@ -12,15 +12,24 @@ function varargout = start(varargin)
 
 narginchk( 0, 1 );
 
-config = hww_gng.config.load();
+config = hww_gng.config.reconcile( hww_gng.config.load() );
+
+persistent figure_handle;
 
 if ( nargin == 1 )
   F = varargin{1};
   set_position = false;
 else
-  F = figure;
-  set_position = true;
+  if ( isempty(figure_handle) || ~isvalid(figure_handle) )
+    F = figure;
+    set_position = true;
+    figure_handle = F;
+  else
+    F = figure_handle;
+    set_position = false;
+  end
 end
+
 F_W = .75;
 F_L = .8;
 F_X = (1-F_W)/2;
@@ -85,10 +94,20 @@ text_pos =  struct( 'x', 0, 'y',  0, 'w', .5 );
 field_pos = struct( 'x', .5, 'y', 0, 'w', .5 );
 text_field_creator( panels.screen, 'SCREEN', {}, text_pos, field_pos );
 
+% - Delays
+
+panels.delays = uipanel( panels.interface ...
+  , 'Title', 'Delays' ...
+  , 'Position', [ .5, 0, .25, .33 ] ...
+);
+text_pos =  struct( 'x', 0, 'y',  0, 'w', .5 );
+field_pos = struct( 'x', .5, 'y', 0, 'w', .5 );
+text_field_creator( panels.delays, 'TIMINGS', {'delays'}, text_pos, field_pos );
+
 % - Serial port specifiers
 panels.serial = uipanel( panels.interface ...
   , 'Title', 'Serial' ...
-  , 'Position', [ .5, 0, .25, .5 ] ...
+  , 'Position', [ .5, .33, .25, .33 ] ...
 );
 text_pos =  struct( 'x', 0, 'y',  0, 'w', .5 );
 field_pos = struct( 'x', .5, 'y', 0, 'w', .5 );
@@ -97,7 +116,7 @@ text_field_creator( panels.serial, 'SERIAL', {}, text_pos, field_pos );
 % - Rewards - %
 panels.reward = uipanel( panels.interface ...
   , 'Title', 'Reward' ...
-  , 'Position', [ .5, .5, .25, .5 ] ...
+  , 'Position', [ .5, .66, .25, .33 ] ...
 );
 text_pos =  struct( 'x', 0,   'y', 0, 'w', .5 );
 field_pos = struct( 'x', .5,  'y', 0, 'w', .5 );
@@ -140,8 +159,8 @@ panels.run = uipanel( F ...
   , 'Position', [ X, Y, W, L ] ...
 );
 
-funcs = { 'hard reset', 'reset to default', 'make default' ...
-  , 'clean-up', 'start' };
+funcs = { 'hard reset', 'reset to default', 'make default', 'check latest edf' ...
+  , 'clean-up', 'setup reward sizes', 'start' };
 w = .5;
 l = 1 / numel(funcs);
 x = 0;
@@ -201,6 +220,8 @@ function handle_button(source, event)
     case 'start'
       hww_gng.config.save( config );
       hww_gng.task.start();
+    case 'setup reward sizes'
+      handle_reward_size_setup();
     case 'clean-up'
       hww_gng.config.save( config );
       hww_gng.task.cleanup();
@@ -209,6 +230,9 @@ function handle_button(source, event)
       hww_gng.config.save( config );
       clf( F );
       hww_gng.gui.start( F );
+    case 'check latest edf'
+      hww_gng.config.save( config );
+      hww_gng.util.check_latest_edf();
     case 'make default'
       hww_gng.config.save( config, '-default' );
     case 'hard reset'
@@ -427,6 +451,87 @@ function text_field_creator( parent, basefield, subfields, text_pos, field_pos )
     y_ = y_ + l_;
   end
 
+end
+
+function handle_reward_size_setup()
+  
+  persistent active_size;
+  
+  sizes = config.REWARDS.main;
+  sizes = arrayfun( @num2str, sizes, 'un', false );
+  
+  if ( numel(sizes) == 0 )
+    warning( 'No rewards have been specified!' );
+    return;
+  end
+  
+  reward_panel = figure();
+  set( reward_panel, 'units', 'pixels' );
+  set( reward_panel, 'position', [0, 0, 400, 100] );
+  
+  color_map = config.REWARDS.color_map;
+  
+  rwd_popup = uicontrol( reward_panel ...
+    , 'Style',      'popup' ...
+    , 'String',     sizes ...
+    , 'Value',      1 ...
+    , 'Units',      'normalized' ...
+    , 'Tag',        'reward_selector' ...
+    , 'Position',   [0, 0, 0.5, 1] ...
+    , 'Callback',   @handle_reward_size_popup ...
+  );
+
+  txt_field = uicontrol( reward_panel ...
+      , 'Style', 'edit' ...
+      , 'String', '' ...
+      , 'Units', 'normalized' ...
+      , 'Position', [0.5, 0, 0.5, 1] ...
+      , 'Callback', @handle_reward_size_selection ...
+  );
+
+  handle_reward_size_popup( rwd_popup );
+  
+  function handle_reward_size_selection(source, event)
+    
+    value = [];
+    
+    try
+      eval( sprintf('value = [%s];', source.String) );
+    catch err
+      warning( err.message );
+      return;
+    end
+    
+    if ( isempty(value) || ~isnumeric(value) || numel(value) ~= 3 )
+      warning( 'Specify color as 3 element numeric vector' );
+      return;
+    end
+    
+    if ( isempty(active_size) )
+      warning( 'Activate a size before entering a value.' );
+      return;
+    end
+    
+    color_map(active_size) = value;
+    
+    hww_gng.config.save( config );
+  end
+
+  function handle_reward_size_popup(source, event)
+    
+    selection_str = source.String{source.Value};
+    selection = str2double( selection_str );
+    
+    active_size = selection;
+    
+    if ( ~isKey(config.REWARDS.color_map, selection) )
+      warning( 'Unrecognized reward size "%s"', selection_str );
+    else
+      value = color_map(selection);
+      txt_field.String = num2str( value );
+    end
+  
+  end
 end
 
 end
