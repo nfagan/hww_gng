@@ -43,7 +43,9 @@ reward_size_cue_filename = '';
 
 while ( true )
   
-  comm.update();
+  if ( ~isempty(comm) )
+    comm.update();
+  end
   
   if ( isnan(opts.PLEX_SYNC.sync_timer) || ...
       toc(opts.PLEX_SYNC.sync_timer) >= opts.PLEX_SYNC.sync_frequency )
@@ -187,15 +189,17 @@ while ( true )
         cue.image = select_images{1};
       end
       
-      if ( TRIAL_NUMBER == 1 || did_show_reward_info_cue )
-        block_size = STRUCTURE.reward_block_size;
-        n_conditions = 3;
-        
-        reward_size_index = get_next_reward_size_index( block_size, n_conditions );
-        reward_size_name = get_reward_size_name( reward_size_index );
+      if ( STRUCTURE.use_variable_rewards )
+        if ( TRIAL_NUMBER == 1 || did_show_reward_info_cue )
+          block_size = STRUCTURE.reward_block_size;
+          n_conditions = 3;
+
+          reward_size_index = get_next_reward_size_index( block_size, n_conditions );
+          reward_size_name = get_reward_size_name( reward_size_index );
+        end
+      else
+        reward_size_name = 'main';
       end
-      
-      fprintf( 'REWARD SIZE INDEX: %d', reward_size_index );
       
       did_show_reward_info_cue = false;
       
@@ -277,7 +281,8 @@ while ( true )
       did_show_cue = false;
       first_entry = false;
       
-      reward_size_cue_filename = configure_reward_size_cue( reward_size_cue, images.reward_size_cues, reward_size_name );
+      reward_size_cue_filename = configure_reward_size_cue( reward_size_cue ...
+        , images.reward_size_cues, reward_size_name );
     end
     
     TRACKER.update_coordinates();
@@ -552,6 +557,11 @@ while ( true )
     end
     rwd_drop.draw();
     rwd_border.draw_frame();
+    
+    if ( STRUCTURE.persist_images_through_reward )
+      go_target.draw();
+    end
+    
     Screen( 'Flip', WINDOW.index );
     if ( log_progress )
       PROGRESS.go_target_offset = TIMER.get_time( 'task' );
@@ -609,6 +619,13 @@ if ( INTERFACE.save_data )
   data.config = hww_gng.config.load();
   data.date = datestr( now );
   save( fullfile(IO.data_folder, IO.data_file), 'data' );
+  
+  edf_fullfile = fullfile( IO.edf_folder, IO.edf_file );
+  new_edf_fullfile = sprintf( '%s.edf', fullfile(IO.data_folder, IO.data_file) );
+  
+  if ( shared_utils.io.fexists(edf_fullfile) )
+    movefile( edf_fullfile, new_edf_fullfile );
+  end
 end
 
 end

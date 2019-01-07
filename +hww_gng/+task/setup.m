@@ -28,6 +28,15 @@ KbName( 'UnifyKeyNames' );
 addpath( genpath(fullfile(IO.repo_dir, 'ptb_helpers')) );
 addpath( genpath(fullfile(IO.repo_dir, 'serial_comm')) );
 
+if ( INTERFACE.save_data && INTERFACE.auto_generate_filenames )
+  [data_folder, data_file, edf_file] = get_auto_generated_file_components();
+  
+  IO.data_folder = data_folder;
+  IO.data_file = data_file;
+  IO.edf_folder = data_folder;
+  IO.edf_file = edf_file;
+end
+
 if ( INTERFACE.save_data && ~INTERFACE.allow_overwrite )
   hww_gng.util.assert__file_does_not_exist( fullfile(IO.data_folder, IO.data_file) );
   hww_gng.util.assert__file_does_not_exist( fullfile(IO.edf_folder, IO.edf_file) );
@@ -134,6 +143,7 @@ opts.TRACKER =    TRACKER;
 opts.TIMER =      TIMER;
 opts.STIMULI =    STIMULI;
 opts.SERIAL =     SERIAL;
+opts.IO =         IO;
 
 end
 
@@ -164,4 +174,15 @@ catch err
   warning( err.message );
   image_names = {};
 end
+end
+
+function [data_folder, data_file, edf_file] = get_auto_generated_file_components()
+
+data_folder = fullfile( hww_gng.util.get_project_folder(), 'data', datestr(now, 'mmddyy') );
+data_file = sprintf( '%s.mat', datestr(now) );
+data_file = strrep( data_file, ':', '-' );
+
+shared_utils.io.require_dir( data_folder );
+edf_file = shared_utils.io.get_next_numbered_filename( data_folder, '.edf' );
+
 end

@@ -44,6 +44,7 @@ INTERFACE.use_eyelink = true;
 INTERFACE.use_arduino = true;
 INTERFACE.save_data = true;
 INTERFACE.allow_overwrite = false;
+INTERFACE.auto_generate_filenames = false;
 INTERFACE.stop_key = KbName( 'escape' );
 INTERFACE.rwd_key = KbName( 'r' );
 INTERFACE.skip_sync_tests = false;
@@ -57,6 +58,8 @@ STRUCTURE.target_types = 'nonsocial';
 STRUCTURE.use_reward_cue = 0;
 STRUCTURE.reward_block_size = 9;
 STRUCTURE.max_n_images = inf;
+STRUCTURE.persist_images_through_reward = false;
+STRUCTURE.use_variable_rewards = true;
 
 % - TIMINGS - %
 time_in.task = Inf;
